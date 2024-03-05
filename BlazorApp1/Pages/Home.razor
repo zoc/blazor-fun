@@ -1,0 +1,52 @@
+﻿@page "/"
+@using Grpc.Net.Client
+@using Google.Protobuf.WellKnownTypes
+@using Grpc.Core
+@using GrpcService1
+@using ClassLibrary1
+@inject GrpcChannel Channel
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+<p/>
+@helloFromFSharp
+<p/>
+@grpcResponse.
+<p/>
+@grpcHour
+<p/>
+
+@code
+{
+	private string grpcResponse = "No Response from Service";
+	private string grpcHour = "";
+	private string helloFromFSharp = "";
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		var client = new Greeter.GreeterClient(Channel);
+		var response = await client.SayHelloAsync(new HelloRequest { Name = "WebAssembly Client" });
+		if (response is not null)
+			grpcResponse = response.Message;
+
+		helloFromFSharp = new Say.SayHelloFromFSharp().Hello();
+
+		await HourGlassSub();
+	}
+
+	private async Task HourGlassSub()
+	{
+		var client = new HourGlass.HourGlassClient(Channel);
+		using var sub = client.Subscribe(new Empty());
+
+		await foreach (var hour in sub.ResponseStream.ReadAllAsync())
+		{
+			grpcHour = hour.Message;
+			StateHasChanged();
+		}
+	}
+}
